@@ -1,7 +1,7 @@
-vibrant.d - A light framework that mimicks Sinatra and Spark
-============================================================
+vibrant.d - A Sinatra-like frame for vibe.d
+===========================================
 
-vibrant.d is a light routing framework for vibe.d.
+vibrant.d is a light routing framework that mimicks the style of frameworks like Sinatra and Spark.
 
 Hello World
 -----------
@@ -20,8 +20,7 @@ shared static this()
 
 Bye-bye boilerplate, hello world.
 
-Personalized Greeting
----------------------
+### Personalized Greeting
 
 ```d
 import vibrant.d;
@@ -37,8 +36,7 @@ shared static this()
 
 vibe.d style URL routing, vibrant.d style simplicity.
 
-Hit the road Jack
------------------
+### Hit the road Jack
 
 ```d
 import vibrant.d;
@@ -61,8 +59,7 @@ shared static this()
 
 Also comes in `halt()`, `halt(403)`, and `halt(403, "...")` flavours.
 
-Exceptions Handled
-------------------
+### Exceptions Handled
 
 ```d
 import vibrant.d;
@@ -83,8 +80,7 @@ shared static this()
 
 Exceptions are better when they're simple.
 
-Route More
-----------
+### Route More
 
 ```d
 import vibrant.d;
@@ -105,8 +101,7 @@ shared static this()
 
 `Vibrant()` also happily accepts vibe.d's `HTTPServerSettings` objects.
 
-Serve More
-----------
+### Serve More
 
 ```d
 import vibrant.d;
@@ -132,8 +127,7 @@ shared static this()
 
 If you don't give vibrant a second delegate, the value is converted with `std.conv.to!string`.
 
-Comes With Options
-------------------
+### Comes With Options
 
 ```d
 import vibrant.d;
@@ -155,8 +149,7 @@ shared static this()
 
 Or use `Vibrant!true(8080)` to include all methods supported by vibe.d.
 
-And Stop
---------
+### And Stop
 
 ```d
 import vibrant.d;
