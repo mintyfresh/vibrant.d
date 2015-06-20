@@ -1,5 +1,5 @@
-vibrant.d - A light framework that mimcks Sinatra and Spark
-===========================================================
+vibrant.d - A light framework that mimicks Sinatra and Spark
+============================================================
 
 vibrant.d is a light routing framework for vibe.d.
 
