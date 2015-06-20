@@ -1,21 +1,21 @@
 {
-	"name": "vibrant",
-	"description": "A tiny web framework that works on top of vibe.d.",
-	"copyright": "Copyright © 2015, Mihail K.",
-	"license": "MIT",
-	"authors": [ "Mihail K" ],
-	"dependencies": {
-		"vibe-d": "~>0.7.24-beta.1"
-	},
-	"configurations": [
-    {
-      "name": "demo",
-      "targetType": "executable",
-      "versions": ["VibeDefaultMain"]
+    "name": "vibrant-d",
+    "description": "A tiny web framework that works on top of vibe.d.",
+    "copyright": "Copyright © 2015, Mihail K.",
+    "license": "MIT",
+    "authors": [ "Mihail K" ],
+    "dependencies": {
+        "vibe-d": "~>0.7.24-beta.1"
     },
-    {
-      "name": "library",
-      "targetType": "library"
-    }
-  ]
+    "configurations": [
+        {
+            "name": "demo",
+            "targetType": "executable",
+            "versions": ["VibeDefaultMain"]
+        },
+        {
+            "name": "library",
+            "targetType": "library"
+        }
+    ]
 }
