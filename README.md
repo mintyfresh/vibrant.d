@@ -118,14 +118,14 @@ shared static this()
                 "greeting" : Json("Hello " ~ req.params["name"])
             ]);
         },
-        (json) => // Optional!
+        (json) =>
             json.toPrettyString
         );
     }
 }
 ```
 
-If you don't give vibrant a second delegate, the value is converted with `std.conv.to!string`.
+vibrant.d is perfectly fine with writing both `string` and `const(ubyte[])` output.
 
 ### Comes With Options
 

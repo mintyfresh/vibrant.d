@@ -102,24 +102,10 @@ class VibrantRouter(bool GenerateAll = false)
 		);
 
 		/++
-		 + Response callback with a string return value.
-		 ++/
-		alias StringCallback = string delegate(
-			HTTPServerRequest, HTTPServerResponse
-		);
-
-		/++
 		 + Response callback for catching exceptions.
 		 ++/
 		alias ExceptionCallback = void delegate(
 			Throwable, HTTPServerRequest, HTTPServerResponse
-		);
-
-		/++
-		 + Transformer callback for turning objects to strings.
-		 ++/
-		alias TransformerCallback = string delegate(
-			Object
 		);
 	}
 
@@ -286,7 +272,7 @@ class VibrantRouter(bool GenerateAll = false)
 		}
 	}
 
-	template Any(Temp, Result = string)
+	template Any(Temp)
 	if(isValidTransformedType!Result)
 	{
 		static if(!is(Temp == void))
@@ -299,14 +285,15 @@ class VibrantRouter(bool GenerateAll = false)
 			 +     callback    = The handler that gets called for requests.
 			 +     transformer = The transformer function that converts output.
 			 ++/
-			void Any(string path,
+			void Any(Result = string)(string path,
 				Temp function(HTTPServerRequest, HTTPServerResponse) callback,
 				Result function(Temp) transformer)
+			if(isValidTransformedType!Result)
 			{
 				foreach(method; EnumMembers!HTTPMethod)
 				{
 					// Match each HTTP method type.
-					Match!(Temp, Result)(
+					Match!(Temp)(
 						method, path, callback, transformer
 					);
 				}
@@ -320,14 +307,15 @@ class VibrantRouter(bool GenerateAll = false)
 			 +     callback    = The handler that gets called for requests.
 			 +     transformer = The transformer function that converts output.
 			 ++/
-			void Any(string path,
+			void Any(Result = string)(string path,
 				Temp delegate(HTTPServerRequest, HTTPServerResponse) callback,
 				Result delegate(Temp) transformer)
+			if(isValidTransformedType!Result)
 			{
 				foreach(method; EnumMembers!HTTPMethod)
 				{
 					// Match each HTTP method type.
-					Match!(Temp, Result)(
+					Match!(Temp)(
 						method, path, callback, transformer
 					);
 				}
@@ -360,25 +348,26 @@ class VibrantRouter(bool GenerateAll = false)
 				Match(HTTPMethod.%2$s, path, callback);
 			}
 
-			template %1$s(Temp, Result = string)
-			if(isValidTransformedType!Result)
+			template %1$s(Temp)
 			{
 				static if(!is(Temp == void))
 				{
-					void %1$s(string path,
+					void %1$s(Result = string)(string path,
 						Temp function(HTTPServerRequest, HTTPServerResponse) callback,
-						Result function(Temp) transformer = null)
+						Result function(Temp) transformer)
+					if(isValidTransformedType!Result)
 					{
-						Match!(Temp, Result)(
+						Match!(Temp)(
 							HTTPMethod.%2$s, path, callback, transformer
 						);
 					}
 
-					void %1$s(string path,
+					void %1$s(Result = string)(string path,
 						Temp delegate(HTTPServerRequest, HTTPServerResponse) callback,
-						Result delegate(Temp) transformer = null)
+						Result delegate(Temp) transformer)
+					if(isValidTransformedType!Result)
 					{
-						Match!(Temp, Result)(
+						Match!(Temp)(
 							HTTPMethod.%2$s, path, callback, transformer
 						);
 					}
@@ -473,8 +462,7 @@ class VibrantRouter(bool GenerateAll = false)
 		});
 	}
 
-	template Match(Temp, Result = string)
-	if(isValidTransformedType!Result)
+	template Match(Temp)
 	{
 		static if(!is(Temp == void))
 		{
@@ -487,24 +475,15 @@ class VibrantRouter(bool GenerateAll = false)
 			 +     callback    = A function callback handler for the route.
 			 +     transformer = A transformer that converts the handler's output.
 			 ++/
-			void Match(HTTPMethod method, string path,
+			void Match(Result = string)(HTTPMethod method, string path,
 				Temp function(HTTPServerRequest, HTTPServerResponse) callback,
-				Result function(Temp) transformer = null)
+				Result function(Temp) transformer)
+			if(isValidTransformedType!Result)
 			{
-				if(transformer is null)
-				{
-					// Create a to!string delegate wrapper.
-					Match!(Temp, Result)(
-						method, path, toDelegate(callback), null
-					);
-				}
-				else
-				{
-					// Wrap the function in a delegate.
-					Match!(Temp, Result)(
-						method, path, toDelegate(callback), toDelegate(transformer)
-					);
-				}
+				// Wrap the function in a delegate.
+				Match!(Result)(
+					method, path, toDelegate(callback), toDelegate(transformer)
+				);
 			}
 
 			/++
@@ -516,28 +495,19 @@ class VibrantRouter(bool GenerateAll = false)
 			 +     callback    = A delegate callback handler for the route.
 			 +     transformer = A transformer that converts the handler's output.
 			 ++/
-			void Match(HTTPMethod method, string path,
+			void Match(Result = string)(HTTPMethod method, string path,
 				Temp delegate(HTTPServerRequest, HTTPServerResponse) callback,
-				Result delegate(Temp) transformer = null)
+				Result delegate(Temp) transformer)
+			if(isValidTransformedType!Result)
 			{
 				router.match(method, path, (req, res) {
 					try
 					{
-						string result;
-
 						// Invoke before-filters.
 						Filter(beforeCallbacks, path, req, res);
 
-						if(transformer !is null)
-						{
-							// Transform the result into a string.
-							result = transformer(callback(req, res));
-						}
-						else
-						{
-							// Convert the result into a string.
-							result = callback(req, res).to!string;
-						}
+						// Transform the result into a string.
+						string result = transformer(callback(req, res));
 
 						// Invoke after-filters.
 						Filter(afterCallbacks, path, req, res);
