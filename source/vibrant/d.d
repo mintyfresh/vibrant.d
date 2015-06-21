@@ -20,6 +20,7 @@ template isValidResultType(Result)
 {
 	enum isValidResultType =
 		is(Result == const(ubyte[])) ||
+		is(Result == ubyte[]) ||
 		is(Result == string) ||
 		is(Result == void);
 }
@@ -31,6 +32,7 @@ template isValidTransformedType(Temp)
 {
 	enum isValidTransformedType =
 		is(Temp == const(ubyte[])) ||
+		is(Temp == ubyte[]) ||
 		is(Temp == string);
 }
 
@@ -240,18 +242,14 @@ class VibrantRouter(bool GenerateAll = false)
 	 + Adds a handler for all method types on the given path.
 	 +
 	 + Params:
-	 +     path        = The path that gets handled.
-	 +     callback    = The handler that gets called for requests.
+	 +     path     = The path that gets handled.
+	 +     callback = The handler that gets called for requests.
 	 ++/
 	void Any(Result)(string path,
 		Result function(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
-		foreach(method; EnumMembers!HTTPMethod)
-		{
-			// Match each HTTP method type.
-			Match(method, path, callback);
-		}
+		return Any!(Result)(path, null, callback);
 	}
 
 	/++
@@ -259,16 +257,50 @@ class VibrantRouter(bool GenerateAll = false)
 	 +
 	 + Params:
 	 +     path        = The path that gets handled.
+	 +     contentType = The content type header to include in the response.
 	 +     callback    = The handler that gets called for requests.
 	 ++/
-	void Any(Result)(string path,
+	void Any(Result)(string path, string contentType,
+		Result function(HTTPServerRequest, HTTPServerResponse) callback)
+	if(isValidResultType!Result)
+	{
+		foreach(method; EnumMembers!HTTPMethod)
+		{
+			// Match each HTTP method type.
+			Match(method, path, contentType, callback);
+		}
+	}
+
+	/++
+	 + Adds a handler for all method types on the given path.
+	 +
+	 + Params:
+	 +     path     = The path that gets handled.
+	 +     callback = The handler that gets called for requests.
+	 ++/
+	void Any(Result)(string path, string contentType,
+		Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
+	if(isValidResultType!Result)
+	{
+		return Any!(Result)(path, null, callback);
+	}
+
+	/++
+	 + Adds a handler for all method types on the given path.
+	 +
+	 + Params:
+	 +     path        = The path that gets handled.
+	 +     contentType = The content type header to include in the response.
+	 +     callback    = The handler that gets called for requests.
+	 ++/
+	void Any(Result)(string path, string contentType,
 		Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
 		foreach(method; EnumMembers!HTTPMethod)
 		{
 			// Match each HTTP method type.
-			Match(method, path, callback);
+			Match(method, path, contentType, callback);
 		}
 	}
 
@@ -290,12 +322,27 @@ class VibrantRouter(bool GenerateAll = false)
 				Result function(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
+				return Any!(Result)(path, null, callback, transformer);
+			}
+
+			/++
+			 + Adds a handler for all method types on the given path.
+			 +
+			 + Params:
+			 +     path        = The path that gets handled.
+	 		 +     contentType = The content type header to include in the response.
+			 +     callback    = The handler that gets called for requests.
+			 +     transformer = The transformer function that converts output.
+			 ++/
+			void Any(Result = string)(string path, string contentType,
+				Temp function(HTTPServerRequest, HTTPServerResponse) callback,
+				Result function(Temp) transformer)
+			if(isValidTransformedType!Result)
+			{
 				foreach(method; EnumMembers!HTTPMethod)
 				{
 					// Match each HTTP method type.
-					Match!(Temp)(
-						method, path, callback, transformer
-					);
+					Match!(Temp)(method, path, contentType, callback, transformer);
 				}
 			}
 
@@ -305,9 +352,26 @@ class VibrantRouter(bool GenerateAll = false)
 			 + Params:
 			 +     path        = The path that gets handled.
 			 +     callback    = The handler that gets called for requests.
-			 +     transformer = The transformer function that converts output.
+			 +     transformer = The transformer delegate that converts output.
 			 ++/
 			void Any(Result = string)(string path,
+				Temp delegate(HTTPServerRequest, HTTPServerResponse) callback,
+				Result delegate(Temp) transformer)
+			if(isValidTransformedType!Result)
+			{
+				return Any!(Result)(path, null, callback, transformer);
+			}
+
+			/++
+			 + Adds a handler for all method types on the given path.
+			 +
+			 + Params:
+			 +     path        = The path that gets handled.
+	 		 +     contentType = The content type header to include in the response.
+			 +     callback    = The handler that gets called for requests.
+			 +     transformer = The transformer delegate that converts output.
+			 ++/
+			void Any(Result = string)(string path, string contentType,
 				Temp delegate(HTTPServerRequest, HTTPServerResponse) callback,
 				Result delegate(Temp) transformer)
 			if(isValidTransformedType!Result)
@@ -315,9 +379,7 @@ class VibrantRouter(bool GenerateAll = false)
 				foreach(method; EnumMembers!HTTPMethod)
 				{
 					// Match each HTTP method type.
-					Match!(Temp)(
-						method, path, callback, transformer
-					);
+					Match!(Temp)(method, path, contentType, callback, transformer);
 				}
 			}
 		}
@@ -338,14 +400,28 @@ class VibrantRouter(bool GenerateAll = false)
 				Result function(HTTPServerRequest, HTTPServerResponse) callback)
 			if(isValidResultType!Result)
 			{
-				Match(HTTPMethod.%2$s, path, callback);
+				%1$s!(Result)(path, null, callback);
+			}
+
+			void %1$s(Result)(string path, string contentType,
+				Result function(HTTPServerRequest, HTTPServerResponse) callback)
+			if(isValidResultType!Result)
+			{
+				Match(HTTPMethod.%2$s, path, contentType, callback);
 			}
 
 			void %1$s(Result)(string path,
 				Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
 			if(isValidResultType!Result)
 			{
-				Match(HTTPMethod.%2$s, path, callback);
+				%1$s!(Result)(path, null, callback);
+			}
+
+			void %1$s(Result)(string path, string contentType,
+				Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
+			if(isValidResultType!Result)
+			{
+				Match(HTTPMethod.%2$s, path, contentType, callback);
 			}
 
 			template %1$s(Temp)
@@ -357,8 +433,16 @@ class VibrantRouter(bool GenerateAll = false)
 						Result function(Temp) transformer)
 					if(isValidTransformedType!Result)
 					{
+						%1$s!(Result)(path, null, callback, transformer);
+					}
+
+					void %1$s(Result = string)(string path, string contentType,
+						Temp function(HTTPServerRequest, HTTPServerResponse) callback,
+						Result function(Temp) transformer)
+					if(isValidTransformedType!Result)
+					{
 						Match!(Temp)(
-							HTTPMethod.%2$s, path, callback, transformer
+							HTTPMethod.%2$s, path, contentType, callback, transformer
 						);
 					}
 
@@ -367,8 +451,16 @@ class VibrantRouter(bool GenerateAll = false)
 						Result delegate(Temp) transformer)
 					if(isValidTransformedType!Result)
 					{
+						%1$s!(Result)(path, null, callback, transformer);
+					}
+
+					void %1$s(Result = string)(string path, string contentType,
+						Temp delegate(HTTPServerRequest, HTTPServerResponse) callback,
+						Result delegate(Temp) transformer)
+					if(isValidTransformedType!Result)
+					{
 						Match!(Temp)(
-							HTTPMethod.%2$s, path, callback, transformer
+							HTTPMethod.%2$s, path, contentType, callback, transformer
 						);
 					}
 				}
@@ -407,16 +499,48 @@ class VibrantRouter(bool GenerateAll = false)
 	 + Matches a path and method type using a function callback.
 	 +
 	 + Params:
-	 +     method      = The HTTP method matched.
-	 +     path        = The path assigned to this route.
-	 +     callback    = A function callback handler for the route.
+	 +     method   = The HTTP method matched.
+	 +     path     = The path assigned to this route.
+	 +     callback = A function callback handler for the route.
 	 ++/
 	void Match(Result)(HTTPMethod method, string path,
 		Result function(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
 		// Wrap the function in a delegate.
-		Match!Result(method, path, toDelegate(callback));
+		Match!(Result)(method, path, null, callback);
+	}
+
+	/++
+	 + Matches a path and method type using a function callback.
+	 +
+	 + Params:
+	 +     method      = The HTTP method matched.
+	 +     path        = The path assigned to this route.
+	 +     contentType = The content type header to include in the response.
+	 +     callback    = A function callback handler for the route.
+	 ++/
+	void Match(Result)(HTTPMethod method, string path, string contentType,
+		Result function(HTTPServerRequest, HTTPServerResponse) callback)
+	if(isValidResultType!Result)
+	{
+		// Wrap the function in a delegate.
+		Match!(Result)(method, path, contentType, toDelegate(callback));
+	}
+
+	/++
+	 + Matches a path and method type using a delegate callback.
+	 +
+	 + Params:
+	 +     method   = The HTTP method matched.
+	 +     path     = The path assigned to this route.
+	 +     callback = A delegate callback handler for the route.
+	 ++/
+	void Match(Result)(HTTPMethod method, string path,
+		Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
+	if(isValidResultType!Result)
+	{
+		return Match!(Result)(method, path, null, callback);
 	}
 
 	/++
@@ -425,9 +549,10 @@ class VibrantRouter(bool GenerateAll = false)
 	 + Params:
 	 +     method      = The HTTP method matched.
 	 +     path        = The path assigned to this route.
+	 +     contentType = The content type header to include in the response.
 	 +     callback    = A delegate callback handler for the route.
 	 ++/
-	void Match(Result)(HTTPMethod method, string path,
+	void Match(Result)(HTTPMethod method, string path, string contentType,
 		Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
@@ -436,6 +561,17 @@ class VibrantRouter(bool GenerateAll = false)
 			{
 				// Invoke before-filters.
 				Filter(beforeCallbacks, path, req, res);
+
+				if(contentType !is null)
+				{
+					// Include the content type.
+					res.contentType = contentType;
+				}
+				else static if(is(Result == string))
+				{
+					// Include the default string content type.
+					res.contentType = "text/plain; charset=UTF-8";
+				}
 				
 				static if(!is(Result == void))
 				{
@@ -453,7 +589,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Filter(afterCallbacks, path, req, res);
 
 				// Just send an empty response.
-				res.writeBody(result);
+				res.writeBody(result, res.contentType);
 			}
 			catch(Throwable t)
 			{
@@ -480,9 +616,27 @@ class VibrantRouter(bool GenerateAll = false)
 				Result function(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
+				Match!(Result)(method, path, null, callback, transformer);
+			}
+
+			/++
+			 + Matches a path and method type using a function callback.
+			 +
+			 + Params:
+			 +     method      = The HTTP method matched.
+			 +     path        = The path assigned to this route.
+	 		 +     contentType = The content type header to include in the response.
+			 +     callback    = A function callback handler for the route.
+			 +     transformer = A transformer that converts the handler's output.
+			 ++/
+			void Match(Result = string)(HTTPMethod method, string path, string contentType,
+				Temp function(HTTPServerRequest, HTTPServerResponse) callback,
+				Result function(Temp) transformer)
+			if(isValidTransformedType!Result)
+			{
 				// Wrap the function in a delegate.
 				Match!(Result)(
-					method, path, toDelegate(callback), toDelegate(transformer)
+					method, path, contentType, toDelegate(callback), toDelegate(transformer)
 				);
 			}
 
@@ -500,11 +654,40 @@ class VibrantRouter(bool GenerateAll = false)
 				Result delegate(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
+				Match!(Result)(method, path, null, callback, transformer);
+			}
+
+			/++
+			 + Matches a path and method type using a delegate callback.
+			 +
+			 + Params:
+			 +     method      = The HTTP method matched.
+			 +     path        = The path assigned to this route.
+	 		 +     contentType = The content type header to include in the response.
+			 +     callback    = A delegate callback handler for the route.
+			 +     transformer = A transformer that converts the handler's output.
+			 ++/
+			void Match(Result = string)(HTTPMethod method, string path, string contentType,
+				Temp delegate(HTTPServerRequest, HTTPServerResponse) callback,
+				Result delegate(Temp) transformer)
+			if(isValidTransformedType!Result)
+			{
 				router.match(method, path, (req, res) {
 					try
 					{
 						// Invoke before-filters.
 						Filter(beforeCallbacks, path, req, res);
+
+						if(contentType !is null)
+						{
+							// Include the content type.
+							res.contentType = contentType;
+						}
+						else static if(is(Result == string))
+						{
+							// Include the default string content type.
+							res.contentType = "text/plain; charset=UTF-8";
+						}
 
 						// Transform the result into a string.
 						string result = transformer(callback(req, res));
@@ -513,7 +696,7 @@ class VibrantRouter(bool GenerateAll = false)
 						Filter(afterCallbacks, path, req, res);
 
 						// Just send the response.
-						res.writeBody(result);
+						res.writeBody(result, res.contentType);
 					}
 					catch(Throwable t)
 					{

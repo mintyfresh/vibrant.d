@@ -110,14 +110,11 @@ shared static this()
 {
     with(Vibrant(8080))
     {
-        Get!Json("/hello/:name",
-        (req, res) {
-            res.contentType = "application/json";
-
-            return Json([
+        Get!Json("/hello/:name", "application/json",
+        (req, res) =>
+            Json([
                 "greeting" : Json("Hello " ~ req.params["name"])
-            ]);
-        },
+            ]),
         (json) =>
             json.toPrettyString
         );
