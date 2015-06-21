@@ -13,7 +13,10 @@ public import vibe.d;
 // TODO : This is probably a hack.
 extern(C) int _d_isbaseof(ClassInfo oc, ClassInfo c);
 
-class VibrantRouter(bool GenerateAll)
+/++
+ + The vibrant router class.
+ ++/
+class VibrantRouter(bool GenerateAll = false)
 {
 
 	private
@@ -558,6 +561,17 @@ class VibrantRouter(bool GenerateAll)
 
 }
 
+/++
+ + Starts a vibrant router on the given port.
+ + Defaults to port 8085 if none is provided.
+ +
+ + Params:
+ +     port   = The port number to start the server on.
+ +     prefix = The route prefix for all routes.
+ +
+ + Returns:
+ +     An instance of the vibrant router.
+ ++/
 VibrantRouter!GenerateAll Vibrant(bool GenerateAll = false)(
 	ushort port = 8085u, string prefix = null)
 {
@@ -567,6 +581,16 @@ VibrantRouter!GenerateAll Vibrant(bool GenerateAll = false)(
 	return new VibrantRouter!GenerateAll(settings, prefix);
 }
 
+/++
+ + Starts a vibrant server with http settings.
+ +
+ + Params:
+ +     settings = The HTTP server settings object.
+ +     prefix   = The route prefix for all routes.
+ +
+ + Returns:
+ +     An instance of the vibrant router.
+ ++/
 VibrantRouter!GenerateAll Vibrant(bool GenerateAll = false)(
 	HTTPServerSettings settings, string prefix = null)
 {
