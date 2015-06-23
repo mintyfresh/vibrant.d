@@ -82,12 +82,12 @@ class VibrantRouter(bool GenerateAll = false)
 		Nullable!HTTPListener savedListener;
 
 		/++
-		 + Filter callbacks invoked before a route handler.
+		 + runFilter callbacks invoked before a route handler.
 		 ++/
 		VoidCallback[][string] beforeCallbacks;
 
 		/++
-		 + Filter callbacks invoked after a route handler.
+		 + runFilter callbacks invoked after a route handler.
 		 ++/
 		VoidCallback[][string] afterCallbacks;
 
@@ -173,7 +173,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 ++/
 	void Before(VoidCallback callback)
 	{
-		AddFilter(beforeCallbacks, null, callback);
+		addFilter(beforeCallbacks, null, callback);
 	}
 
 	/++
@@ -185,7 +185,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 ++/
 	void Before(string path, VoidCallback callback)
 	{
-		AddFilter(beforeCallbacks, path, callback);
+		addFilter(beforeCallbacks, path, callback);
 	}
 
 	/++
@@ -196,7 +196,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 ++/
 	void After(VoidCallback callback)
 	{
-		AddFilter(afterCallbacks, null, callback);
+		addFilter(afterCallbacks, null, callback);
 	}
 
 	/++
@@ -208,7 +208,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 ++/
 	void After(string path, VoidCallback callback)
 	{
-		AddFilter(afterCallbacks, path, callback);
+		addFilter(afterCallbacks, path, callback);
 	}
 
 	/++
@@ -249,7 +249,7 @@ class VibrantRouter(bool GenerateAll = false)
 		Result function(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
-		return Any!(Result)(path, null, callback);
+		return Any!(Result)(path, "", callback);
 	}
 
 	/++
@@ -282,7 +282,7 @@ class VibrantRouter(bool GenerateAll = false)
 		Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
-		return Any!(Result)(path, null, callback);
+		return Any!(Result)(path, "", callback);
 	}
 
 	/++
@@ -322,7 +322,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result function(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
-				return Any!(Result)(path, null, callback, transformer);
+				return Any!(Result)(path, "", callback, transformer);
 			}
 
 			/++
@@ -359,7 +359,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result delegate(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
-				return Any!(Result)(path, null, callback, transformer);
+				return Any!(Result)(path, "", callback, transformer);
 			}
 
 			/++
@@ -400,7 +400,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result function(HTTPServerRequest, HTTPServerResponse) callback)
 			if(isValidResultType!Result)
 			{
-				%1$s!(Result)(path, null, callback);
+				%1$s!(Result)(path, "", callback);
 			}
 
 			void %1$s(Result)(string path, string contentType,
@@ -414,7 +414,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
 			if(isValidResultType!Result)
 			{
-				%1$s!(Result)(path, null, callback);
+				%1$s!(Result)(path, "", callback);
 			}
 
 			void %1$s(Result)(string path, string contentType,
@@ -425,6 +425,7 @@ class VibrantRouter(bool GenerateAll = false)
 			}
 
 			template %1$s(Temp)
+			if(!is(Temp == void))
 			{
 				static if(!is(Temp == void))
 				{
@@ -433,7 +434,7 @@ class VibrantRouter(bool GenerateAll = false)
 						Result function(Temp) transformer)
 					if(isValidTransformedType!Result)
 					{
-						%1$s!(Result)(path, null, callback, transformer);
+						%1$s!(Result)(path, "", callback, transformer);
 					}
 
 					void %1$s(Result = string)(string path, string contentType,
@@ -451,7 +452,7 @@ class VibrantRouter(bool GenerateAll = false)
 						Result delegate(Temp) transformer)
 					if(isValidTransformedType!Result)
 					{
-						%1$s!(Result)(path, null, callback, transformer);
+						%1$s!(Result)(path, "", callback, transformer);
 					}
 
 					void %1$s(Result = string)(string path, string contentType,
@@ -508,7 +509,7 @@ class VibrantRouter(bool GenerateAll = false)
 	if(isValidResultType!Result)
 	{
 		// Wrap the function in a delegate.
-		Match!(Result)(method, path, null, callback);
+		Match!(Result)(method, path, "", callback);
 	}
 
 	/++
@@ -540,7 +541,7 @@ class VibrantRouter(bool GenerateAll = false)
 		Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
-		return Match!(Result)(method, path, null, callback);
+		return Match!(Result)(method, path, "", callback);
 	}
 
 	/++
@@ -560,18 +561,7 @@ class VibrantRouter(bool GenerateAll = false)
 			try
 			{
 				// Invoke before-filters.
-				Filter(beforeCallbacks, path, req, res);
-
-				if(contentType !is null)
-				{
-					// Include the content type.
-					res.contentType = contentType;
-				}
-				else static if(is(Result == string))
-				{
-					// Include the default string content type.
-					res.contentType = "text/plain; charset=UTF-8";
-				}
+				runFilter(beforeCallbacks, path, req, res);
 				
 				static if(!is(Result == void))
 				{
@@ -586,19 +576,26 @@ class VibrantRouter(bool GenerateAll = false)
 				}
 
 				// Invoke after-filters.
-				Filter(afterCallbacks, path, req, res);
+				runFilter(afterCallbacks, path, req, res);
+
+				if(contentType == "")
+				{
+					// Include the content type.
+					contentType = res.contentType;
+				}
 
 				// Just send an empty response.
-				res.writeBody(result, res.contentType);
+				res.writeBody(result, contentType);
 			}
 			catch(Throwable t)
 			{
-				Handle(t, req, res);
+				handleException(t, req, res);
 			}
 		});
 	}
 
 	template Match(Temp)
+	if(!is(Temp == void))
 	{
 		static if(!is(Temp == void))
 		{
@@ -616,7 +613,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result function(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
-				Match!(Result)(method, path, null, callback, transformer);
+				Match!(Result)(method, path, "", callback, transformer);
 			}
 
 			/++
@@ -654,7 +651,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result delegate(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
-				Match!(Result)(method, path, null, callback, transformer);
+				Match!(Result)(method, path, "", callback, transformer);
 			}
 
 			/++
@@ -676,31 +673,26 @@ class VibrantRouter(bool GenerateAll = false)
 					try
 					{
 						// Invoke before-filters.
-						Filter(beforeCallbacks, path, req, res);
-
-						if(contentType !is null)
-						{
-							// Include the content type.
-							res.contentType = contentType;
-						}
-						else static if(is(Result == string))
-						{
-							// Include the default string content type.
-							res.contentType = "text/plain; charset=UTF-8";
-						}
+						runFilter(beforeCallbacks, path, req, res);
 
 						// Transform the result into a string.
 						string result = transformer(callback(req, res));
 
 						// Invoke after-filters.
-						Filter(afterCallbacks, path, req, res);
+						runFilter(afterCallbacks, path, req, res);
+
+						if(contentType == "")
+						{
+							// Include the content type.
+							contentType = res.contentType;
+						}
 
 						// Just send the response.
-						res.writeBody(result, res.contentType);
+						res.writeBody(result, contentType);
 					}
 					catch(Throwable t)
 					{
-						Handle(t, req, res);
+						handleException(t, req, res);
 					}
 				});
 			}
@@ -716,7 +708,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 +     req   = The server request object.
 	 +     res   = The server response object. 
 	 ++/
-	private void Filter(ref VoidCallback[][string] table, string path,
+	private void runFilter(ref VoidCallback[][string] table, string path,
 		HTTPServerRequest req, HTTPServerResponse res)
 	{
 		foreach(callbackPath, callbacks; table)
@@ -753,7 +745,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 +     req = The server request object.
 	 +     res = The server response object.
 	 ++/
-	private void Handle(Throwable t, HTTPServerRequest req, HTTPServerResponse res)
+	private void handleException(Throwable t, HTTPServerRequest req, HTTPServerResponse res)
 	{
 		foreach(typeinfo, handler; exceptionCallbacks)
 		{
@@ -777,7 +769,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 +     path        = The path the callback runs on.
 	 +     callback    = The callback to add.
 	 ++/
-	private void AddFilter(ref VoidCallback[][string] filterTable,
+	private void addFilter(ref VoidCallback[][string] filterTable,
 		/+ @Nullable +/ string path, VoidCallback callback)
 	{
 		// Check if the path has callbacks.
