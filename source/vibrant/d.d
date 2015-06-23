@@ -788,6 +788,21 @@ class VibrantRouter(bool GenerateAll = false)
 }
 
 /++
+ + Starts a vibrant router on port 8085.
+ +
+ + Params:
+ +     prefix = The route prefix for all routes.
+ +
+ + Returns:
+ +     An instance of the vibrant router.
+ ++/
+VibrantRouter!GenerateAll Vibrant(bool GenerateAll = false)(
+	string prefix = null)
+{
+	return Vibrant!GenerateAll(8085u, prefix);
+}
+
+/++
  + Starts a vibrant router on the given port.
  + Defaults to port 8085 if none is provided.
  +
@@ -799,7 +814,7 @@ class VibrantRouter(bool GenerateAll = false)
  +     An instance of the vibrant router.
  ++/
 VibrantRouter!GenerateAll Vibrant(bool GenerateAll = false)(
-	ushort port = 8085u, string prefix = null)
+	ushort port, string prefix = null)
 {
 	HTTPServerSettings settings = new HTTPServerSettings;
 	settings.port = port;
