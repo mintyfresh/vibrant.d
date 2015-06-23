@@ -111,6 +111,9 @@ class VibrantRouter(bool GenerateAll = false)
 		);
 	}
 
+	/++
+	 + Constructs a new vibrant router.
+	 ++/
 	private this(URLRouter router)
 	{
 		this.router = router;
@@ -132,27 +135,12 @@ class VibrantRouter(bool GenerateAll = false)
 	}
 
 	/++
-	 + Module initializer.
+	 + Constructs a new vibrant router.
 	 ++/
 	private this(HTTPServerSettings settings, string prefix)
 	{
-		router = new URLRouter(prefix);
+		this(new URLRouter(prefix));
 		savedListener = listenHTTP(settings, router);
-
-		// Preload the HaltThrowable handler.
-		Catch(HaltThrowable.classinfo, (t, req, res) {
-			// Get the HaltThrowable object.
-			HaltThrowable ht = cast(HaltThrowable)t;
-
-			// Check for a status code.
-			if(ht.status != 0)
-			{
-				res.statusCode = ht.status;
-			}
-
-			// Write the response body.
-			res.writeBody(ht.msg);
-		});
 	}
 
 	auto Scope(string prefix)
