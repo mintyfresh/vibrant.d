@@ -249,7 +249,7 @@ class VibrantRouter(bool GenerateAll = false)
 		Result function(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
-		return Any!(Result)(path, "", callback);
+		return Any!(Result)(path, null, callback);
 	}
 
 	/++
@@ -282,7 +282,7 @@ class VibrantRouter(bool GenerateAll = false)
 		Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
-		return Any!(Result)(path, "", callback);
+		return Any!(Result)(path, null, callback);
 	}
 
 	/++
@@ -322,7 +322,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result function(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
-				return Any!(Result)(path, "", callback, transformer);
+				return Any!(Result)(path, null, callback, transformer);
 			}
 
 			/++
@@ -359,7 +359,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result delegate(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
-				return Any!(Result)(path, "", callback, transformer);
+				return Any!(Result)(path, null, callback, transformer);
 			}
 
 			/++
@@ -400,7 +400,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result function(HTTPServerRequest, HTTPServerResponse) callback)
 			if(isValidResultType!Result)
 			{
-				%1$s!(Result)(path, "", callback);
+				%1$s!(Result)(path, null, callback);
 			}
 
 			void %1$s(Result)(string path, string contentType,
@@ -414,7 +414,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
 			if(isValidResultType!Result)
 			{
-				%1$s!(Result)(path, "", callback);
+				%1$s!(Result)(path, null, callback);
 			}
 
 			void %1$s(Result)(string path, string contentType,
@@ -434,7 +434,7 @@ class VibrantRouter(bool GenerateAll = false)
 						Result function(Temp) transformer)
 					if(isValidTransformedType!Result)
 					{
-						%1$s!(Result)(path, "", callback, transformer);
+						%1$s!(Result)(path, null, callback, transformer);
 					}
 
 					void %1$s(Result = string)(string path, string contentType,
@@ -452,7 +452,7 @@ class VibrantRouter(bool GenerateAll = false)
 						Result delegate(Temp) transformer)
 					if(isValidTransformedType!Result)
 					{
-						%1$s!(Result)(path, "", callback, transformer);
+						%1$s!(Result)(path, null, callback, transformer);
 					}
 
 					void %1$s(Result = string)(string path, string contentType,
@@ -509,7 +509,7 @@ class VibrantRouter(bool GenerateAll = false)
 	if(isValidResultType!Result)
 	{
 		// Wrap the function in a delegate.
-		Match!(Result)(method, path, "", callback);
+		Match!(Result)(method, path, null, callback);
 	}
 
 	/++
@@ -541,7 +541,7 @@ class VibrantRouter(bool GenerateAll = false)
 		Result delegate(HTTPServerRequest, HTTPServerResponse) callback)
 	if(isValidResultType!Result)
 	{
-		return Match!(Result)(method, path, "", callback);
+		return Match!(Result)(method, path, null, callback);
 	}
 
 	/++
@@ -578,12 +578,6 @@ class VibrantRouter(bool GenerateAll = false)
 				// Invoke after-filters.
 				runFilter(afterCallbacks, path, req, res);
 
-				if(contentType == "")
-				{
-					// Include the content type.
-					contentType = res.contentType;
-				}
-
 				// Just send an empty response.
 				res.writeBody(result, contentType);
 			}
@@ -613,7 +607,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result function(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
-				Match!(Result)(method, path, "", callback, transformer);
+				Match!(Result)(method, path, null, callback, transformer);
 			}
 
 			/++
@@ -651,7 +645,7 @@ class VibrantRouter(bool GenerateAll = false)
 				Result delegate(Temp) transformer)
 			if(isValidTransformedType!Result)
 			{
-				Match!(Result)(method, path, "", callback, transformer);
+				Match!(Result)(method, path, null, callback, transformer);
 			}
 
 			/++
@@ -680,12 +674,6 @@ class VibrantRouter(bool GenerateAll = false)
 
 						// Invoke after-filters.
 						runFilter(afterCallbacks, path, req, res);
-
-						if(contentType == "")
-						{
-							// Include the content type.
-							contentType = res.contentType;
-						}
 
 						// Just send the response.
 						res.writeBody(result, contentType);
