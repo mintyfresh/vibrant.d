@@ -93,6 +93,7 @@ import vibrant.d;
 
 shared static this()
 {
+    // Run on port 8080
     with(Vibrant(8080))
     {
         Get("/hello/:name", (req, res) =>
@@ -100,6 +101,7 @@ shared static this()
         );
     }
 
+    // Run on port 8081
     with(Vibrant(8081))
     {
         Get("/hello/:name", (req, res) =>
@@ -132,7 +134,36 @@ shared static this()
 }
 ```
 
-vibrant.d is perfectly fine with writing both `string` and `const(ubyte[])` output.
+vibrant.d is perfectly fine with producing `string`, `ubyte[]`, and `const(ubyte[])` output.
+
+### Scope More
+
+```d
+import vibrant.d;
+
+shared static this()
+{
+    with(Vibrant)
+    {
+        // Path : /hello
+        Get("/hello", (req, res) => "Hello user!");
+
+        with(Scope("/api"))
+        {
+            // Path : /api/hello
+            Get("/hello", (req, res) => "Hello developer!");
+
+            with(Scope("/admin"))
+            {
+                // Path : /api/admin/hello
+                Get("/hello", (req, res) => "Hello admin!");
+            }
+        }
+    }
+}
+```
+
+vibrant.d scopes can break up messy APIs into a neat hierarchy.
 
 ### Comes With Options
 
