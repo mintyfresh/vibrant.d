@@ -11,7 +11,7 @@ import vibrant.d;
 
 shared static this()
 {
-    with(Vibrant(8080))
+    with(Vibrant)
     {
         Get("/hello", (req, res) => "Hello World!");
     }
@@ -27,9 +27,11 @@ import vibrant.d;
 
 shared static this()
 {
-    with(Vibrant(8080))
+    with(Vibrant)
     {
-        Get("/hello/:name", (req, res) => "Hello " ~ req.params["name"]);
+        Get("/hello/:name", (req, res) =>
+            "Hello " ~ req.params["name"]
+        );
     }
 }
 ```
@@ -43,7 +45,7 @@ import vibrant.d;
 
 shared static this()
 {
-    with(Vibrant(8080))
+    with(Vibrant)
     {
         Before("/hello/:name", (req, res) {
             if(req.params["name"] == "Jack")
@@ -52,7 +54,9 @@ shared static this()
             }
         });
 
-        Get("/hello/:name", (req, res) => "Hello " ~ req.params["name"]);
+        Get("/hello/:name", (req, res) =>
+            "Hello " ~ req.params["name"]
+        );
     }
 }
 ```
@@ -66,14 +70,16 @@ import vibrant.d;
 
 shared static this()
 {
-    with(Vibrant(8080))
+    with(Vibrant)
     {
         Catch(Exception.classinfo, (ex, req, res) {
             res.statusCode = 500;
             res.writeBody(ex.msg);
         });
 
-        Get("/hello/:name", (req, res) => throw new Exception("Whoops!"));
+        Get("/hello/:name", (req, res) {
+            throw new Exception("Whoops!");
+        });
     }
 }
 ```
@@ -89,12 +95,16 @@ shared static this()
 {
     with(Vibrant(8080))
     {
-        Get("/hello/:name", (req, res) => "Hello " ~ req.params["name"]);
+        Get("/hello/:name", (req, res) =>
+            "Hello " ~ req.params["name"]
+        );
     }
 
     with(Vibrant(8081))
     {
-        Get("/hello/:name", (req, res) => "Goodbye " ~ req.params["name"]);
+        Get("/hello/:name", (req, res) =>
+            "Goodbye " ~ req.params["name"]
+        );
     }
 }
 ```
@@ -108,15 +118,15 @@ import vibrant.d;
 
 shared static this()
 {
-    with(Vibrant(8080))
+    with(Vibrant)
     {
         Get!Json("/hello/:name", "application/json",
-        (req, res) =>
-            Json([
-                "greeting" : Json("Hello " ~ req.params["name"])
-            ]),
-        (json) =>
-            json.toPrettyString
+            (req, res) =>
+                Json([
+                    "greeting" : Json("Hello " ~ req.params["name"])
+                ]),
+            (json) =>
+                json.toPrettyString
         );
     }
 }
@@ -131,20 +141,34 @@ import vibrant.d;
 
 shared static this()
 {
-    with(Vibrant(8080))
+    with(Vibrant)
     {
-        Get("/hello", (req, res) { . . . });
+        Get("/hello", (req, res) {
+            // showWorld();
+        });
 
-        Post("/hello", (req, res) { . . . });
+        Post("/hello", (req, res) {
+            // createWorld();
+        });
 
-        Put("/hello", (req, res) { . . . });
+        Put("/hello", (req, res) {
+            // updateWorld();
+        });
 
-        // Patch, Delete, Head, Options, Connect, Trace
+        Delete("/hello", (req, res) {
+            // deleteWorld();
+        });
+
+        Connect("/hello", (req, res) {
+            // tunnelWorld();
+        });
     }
 }
 ```
 
-Or use `Vibrant!true(8080)` to include all methods supported by vibe.d.
+vibrant.d includes `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Connect`, and `Trace` by default.
+
+Or use `Vibrant!true` to include all methods supported by vibe.d.
 
 ### And Stop
 
@@ -153,7 +177,7 @@ import vibrant.d;
 
 shared static this()
 {
-    with(Vibrant(8080))
+    with(Vibrant)
     {
         Post("/admin/shutdown", (req, res) {
             bool authenticated;
