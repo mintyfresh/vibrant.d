@@ -14,32 +14,9 @@ public import vibe.d;
 extern(C) int _d_isbaseof(ClassInfo oc, ClassInfo c);
 
 /++
- + Tests if a type is a valid result from a callback.
- ++/
-template isValidResultType(Result)
-{
-	enum isValidResultType =
-		is(Result == const(ubyte[])) ||
-		is(Result == ubyte[]) ||
-		is(Result == string) ||
-		is(Result == void);
-}
-
-/++
- + Tests if a type is a valid result from a transform function.
- ++/
-template isValidTransformedType(Temp)
-{
-	enum isValidTransformedType =
-		is(Temp == const(ubyte[])) ||
-		is(Temp == ubyte[]) ||
-		is(Temp == string);
-}
-
-/++
  + The vibrant router class.
  ++/
-class VibrantRouter(bool GenerateAll = false)
+class VibrantRouter(bool GenerateAll = false) : HTTPServerRequestHandler
 {
 
 	private
@@ -82,12 +59,12 @@ class VibrantRouter(bool GenerateAll = false)
 		Nullable!HTTPListener savedListener;
 
 		/++
-		 + runFilter callbacks invoked before a route handler.
+		 + Filter callbacks invoked before a route handler.
 		 ++/
 		VoidCallback[][string] beforeCallbacks;
 
 		/++
-		 + runFilter callbacks invoked after a route handler.
+		 + Filter callbacks invoked after a route handler.
 		 ++/
 		VoidCallback[][string] afterCallbacks;
 
@@ -109,10 +86,37 @@ class VibrantRouter(bool GenerateAll = false)
 		alias ExceptionCallback = void delegate(
 			Throwable, HTTPServerRequest, HTTPServerResponse
 		);
+
+		/++
+		 + Tests if a type is a valid result from a callback.
+		 ++/
+		template isValidResultType(Result)
+		{
+			enum isValidResultType =
+				is(Result == const(ubyte[])) ||
+				is(Result == ubyte[]) ||
+				is(Result == string) ||
+				is(Result == void);
+		}
+
+		/++
+		 + Tests if a type is a valid result from a transform function.
+		 ++/
+		template isValidTransformedType(Temp)
+		{
+			enum isValidTransformedType =
+				is(Temp == const(ubyte[])) ||
+				is(Temp == ubyte[]) ||
+				is(Temp == string);
+		}
+
 	}
 
 	/++
 	 + Constructs a new vibrant router.
+	 +
+	 + Params:
+	 +     router = A URLRouter to forward requests to.
 	 ++/
 	private this(URLRouter router)
 	{
@@ -135,7 +139,11 @@ class VibrantRouter(bool GenerateAll = false)
 	}
 
 	/++
-	 + Constructs a new vibrant router.
+	 + Constructs a new vibrant router and starts listening for connections.
+	 +
+	 + Params:
+	 +     settings = The settings for the HTTP server.
+	 +     prefix   = The prefix to place all routes at.
 	 ++/
 	private this(HTTPServerSettings settings, string prefix)
 	{
@@ -143,12 +151,37 @@ class VibrantRouter(bool GenerateAll = false)
 		savedListener = listenHTTP(settings, router);
 	}
 
+	/++
+	 + Forwards a requrest to the internal URLRouter.
+	 +
+	 + Params:
+	 +     req = The HTTPServerRequest object.
+	 +     res = The HTTPServerResponse object.
+	 ++/
+	void handleRequest(HTTPServerRequest req, HTTPServerResponse res)
+	{
+		router.handleRequest(req, res);
+	}
+
+	/++
+	 + Produces a child of the current scope with the given prefix.
+	 +
+	 + Params:
+	 +     prefix = The prefix the scope operates from.
+	 +
+	 + Returns:
+	 +     A new VibrantRouter object.
+	 ++/
 	auto Scope(string prefix)
 	{
+		// Create a subrouter and forward requests that match its prefix.
 		auto subrouter = new URLRouter(router.prefix ~ prefix);
 		router.any("*", subrouter);
 
-		return new VibrantRouter!GenerateAll(subrouter);
+		// Create a new child vibrant router, and pass along the listener.
+		auto newRouter = new VibrantRouter!GenerateAll(subrouter);
+		newRouter.savedListener = savedListener;
+		return newRouter;
 	}
 
 	/++
@@ -189,7 +222,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 ++/
 	void Before(VoidCallback callback)
 	{
-		addFilter(beforeCallbacks, null, callback);
+		addFilterCallback(beforeCallbacks, null, callback);
 	}
 
 	/++
@@ -201,7 +234,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 ++/
 	void Before(string path, VoidCallback callback)
 	{
-		addFilter(beforeCallbacks, path, callback);
+		addFilterCallback(beforeCallbacks, path, callback);
 	}
 
 	/++
@@ -212,7 +245,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 ++/
 	void After(VoidCallback callback)
 	{
-		addFilter(afterCallbacks, null, callback);
+		addFilterCallback(afterCallbacks, null, callback);
 	}
 
 	/++
@@ -224,7 +257,7 @@ class VibrantRouter(bool GenerateAll = false)
 	 ++/
 	void After(string path, VoidCallback callback)
 	{
-		addFilter(afterCallbacks, path, callback);
+		addFilterCallback(afterCallbacks, path, callback);
 	}
 
 	/++
@@ -402,16 +435,16 @@ class VibrantRouter(bool GenerateAll = false)
 	}
 
 	/++
-	 + A template that generates the source for a methods.
+	 + A template that generates the source for HTTP methods.
 	 +
 	 + Params:
 	 +     method = The name of the method to produce.
 	 ++/
-	private template MethodCode(string method)
+	private template GetHTTPMethodCode(string method)
 	{
 		import std.string;
 
-		enum MethodCode = format(`
+		enum GetHTTPMethodCode = format(`
 			void %1$s(Result)(string path,
 				Result function(HTTPServerRequest, HTTPServerResponse) callback)
 			if(isValidResultType!Result)
@@ -482,8 +515,10 @@ class VibrantRouter(bool GenerateAll = false)
 					}
 				}
 			}
-		`, 
+		`,
+			// The Titlecase function name.
 			method[0 .. 1].toUpper ~ method[1 .. $].toLower,
+			// The UPPERCASE HTTP method name.
 			method.toUpper
 		);
 	}
@@ -491,12 +526,12 @@ class VibrantRouter(bool GenerateAll = false)
 	static if(GenerateAll)
 	{
 		// Include all supported methods.
-		private enum MethodList = __traits(allMembers, HTTPMethod);
+		private enum HTTPEnabledMethodList = __traits(allMembers, HTTPMethod);
 	}
 	else
 	{
 		// Include only common methods.
-		private enum MethodList = TypeTuple!(
+		private enum HTTPEnabledMethodList = TypeTuple!(
 			"GET", "POST", "PUT", "PATCH", "DELETE",
 			"HEAD", "OPTIONS", "CONNECT", "TRACE"
 		);
@@ -506,8 +541,8 @@ class VibrantRouter(bool GenerateAll = false)
 	mixin(
 		joiner([
 			staticMap!(
-				MethodCode,
-				MethodList
+				GetHTTPMethodCode,
+				HTTPEnabledMethodList
 			)
 		]).text
 	);
@@ -577,7 +612,7 @@ class VibrantRouter(bool GenerateAll = false)
 			try
 			{
 				// Invoke before-filters.
-				runFilter(beforeCallbacks, path, req, res);
+				applyFilterCallback(beforeCallbacks, path, req, res);
 				
 				static if(!is(Result == void))
 				{
@@ -592,7 +627,7 @@ class VibrantRouter(bool GenerateAll = false)
 				}
 
 				// Invoke after-filters.
-				runFilter(afterCallbacks, path, req, res);
+				applyFilterCallback(afterCallbacks, path, req, res);
 
 				// Just send an empty response.
 				res.writeBody(result, contentType);
@@ -683,13 +718,13 @@ class VibrantRouter(bool GenerateAll = false)
 					try
 					{
 						// Invoke before-filters.
-						runFilter(beforeCallbacks, path, req, res);
+						applyFilterCallback(beforeCallbacks, path, req, res);
 
 						// Transform the result into a string.
 						string result = transformer(callback(req, res));
 
 						// Invoke after-filters.
-						runFilter(afterCallbacks, path, req, res);
+						applyFilterCallback(afterCallbacks, path, req, res);
 
 						// Just send the response.
 						res.writeBody(result, contentType);
@@ -703,90 +738,96 @@ class VibrantRouter(bool GenerateAll = false)
 		}
 	}
 
-	/++
-	 + Matches a filter to a path and invokes matched callbacks.
-	 +
-	 + Params:
-	 +     table = The table of callbacks to scan.
-	 +     path  = The path to be matched.
-	 +     req   = The server request object.
-	 +     res   = The server response object. 
-	 ++/
-	private void runFilter(ref VoidCallback[][string] table, string path,
-		HTTPServerRequest req, HTTPServerResponse res)
+	private
 	{
-		foreach(callbackPath, callbacks; table)
+
+		/++
+		 + Adds a filter to a filter callback table.
+		 +
+		 + Params:
+		 +     filterTable = The table to add the callback to.
+		 +     path        = The path the callback runs on.
+		 +     callback    = The callback to add.
+		 ++/
+		void addFilterCallback(ref VoidCallback[][string] filterTable,
+			/+ @Nullable +/ string path, VoidCallback callback)
 		{
-			bool matches = true;
+			// Check if the path has callbacks.
+			auto ptr = path in filterTable;
 
-			if(callbackPath !is null)
+			if(ptr is null)
 			{
-				// Substitue wildwards.
-				import std.array : replace;
-				string pattern = callbackPath.replace("*", ".*?");
-
-				// Check the pattern for a match.
-				import std.regex : matchFirst;
-				matches = !path.matchFirst(pattern).empty;
+				filterTable[path] = [ callback ];
 			}
-
-			if(matches)
+			else
 			{
-				// Invoke matched callbacks.
-				foreach(callback; callbacks)
+				*ptr ~= callback;
+			}
+		}
+
+		/++
+		 + Matches a filter to a path and invokes matched callbacks.
+		 +
+		 + Params:
+		 +     table = The table of callbacks to scan.
+		 +     path  = The path to be matched.
+		 +     req   = The server request object.
+		 +     res   = The server response object. 
+		 ++/
+		void applyFilterCallback(ref VoidCallback[][string] table, string path,
+			HTTPServerRequest req, HTTPServerResponse res)
+		{
+			// Search for matching callbacks.
+			foreach(callbackPath, callbacks; table)
+			{
+				bool matches = true;
+
+				if(callbackPath !is null)
 				{
-					callback(req, res);
+					// Substitue wildwards.
+					import std.array : replace;
+					string pattern = callbackPath.replace("*", ".*?");
+
+					// Check the pattern for a match.
+					import std.regex : matchFirst;
+					matches = !path.matchFirst(pattern).empty;
+				}
+
+				if(matches)
+				{
+					// Invoke matched callbacks.
+					foreach(callback; callbacks)
+					{
+						callback(req, res);
+					}
 				}
 			}
 		}
-	}
 
-	/++
-	 + Matches a throwable type and invokes its handler.
-	 +
-	 + Params:
-	 +     t   = The throwable being matched.
-	 +     req = The server request object.
-	 +     res = The server response object.
-	 ++/
-	private void handleException(Throwable t, HTTPServerRequest req, HTTPServerResponse res)
-	{
-		foreach(typeinfo, handler; exceptionCallbacks)
+		/++
+		 + Matches a throwable type and invokes its handler.
+		 +
+		 + Params:
+		 +     t   = The throwable being matched.
+		 +     req = The server request object.
+		 +     res = The server response object.
+		 ++/
+		void handleException(Throwable t, HTTPServerRequest req, HTTPServerResponse res)
 		{
-			if(_d_isbaseof(t.classinfo, typeinfo))
+			foreach(typeinfo, handler; exceptionCallbacks)
 			{
-				// Forward error to handler.
-				handler(t, req, res);
-				return;
+				if(_d_isbaseof(t.classinfo, typeinfo))
+				{
+					// Forward error to handler.
+					handler(t, req, res);
+					return;
+				}
 			}
+
+			// Rethrow.
+			throw t;
 		}
 
-		// Rethrow.
-		throw t;
-	}
-
-	/++
-	 + Adds a filter to a filter callback table.
-	 +
-	 + Params:
-	 +     filterTable = The table to add the callback to.
-	 +     path        = The path the callback runs on.
-	 +     callback    = The callback to add.
-	 ++/
-	private void addFilter(ref VoidCallback[][string] filterTable,
-		/+ @Nullable +/ string path, VoidCallback callback)
-	{
-		// Check if the path has callbacks.
-		auto ptr = path in filterTable;
-
-		if(ptr is null)
-		{
-			filterTable[path] = [ callback ];
-		}
-		else
-		{
-			*ptr ~= callback;
-		}
 	}
 
 }
