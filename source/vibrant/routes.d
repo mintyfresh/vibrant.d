@@ -1,17 +1,7 @@
 
 module vibrant.routes;
 
-struct Resource
-{
-	string name;
-
-	this(string name)
-	{
-		this.name = name;
-	}
-}
-
-mixin template Routes()
+mixin template Routes(string ResourceName = "")
 {
 
 	import std.typetuple;
@@ -53,25 +43,17 @@ mixin template Routes()
 		@property
 		static string resourceName(this This)()
 		{
-			static if(query!This.hasAnyOf!Resource)
+			static if(ResourceName == "")
 			{
-				// Prefix from attribute.
-				return "/" ~ query!This
-						.attributes!Resource
-						.unique
-						.first
-						.value
-						.name;
+				// Prefix from type name.
+				return "/" ~ This
+					.stringof
+					.toSnakeCase
+					.stripSuffix!"_controller";
 			}
 			else
 			{
-				import std.string;
-
-				// Prefix from type name.
-				return "/" ~ This
-						.stringof
-						.toSnakeCase
-						.stripSuffix!"_controller";
+				return ResourceName;
 			}
 		}
 
@@ -145,6 +127,7 @@ mixin template Routes()
 	 ++/
 	@property
 	public void render(string contentType, Body)(Body content, int code)
+	if(contentType.length > 0 && contentType[0] != '@')
 	{
 		response.statusCode = code;
 		render!(contentType, Body)(content);
