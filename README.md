@@ -191,6 +191,8 @@ vibrant.d scopes can break up messy APIs into a neat hierarchy.
 
 ### Comes With Options
 
+vibrant.d includes methods for `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Connect`, and `Trace` by default.
+
 ```d
 import vibrant.d;
 
@@ -221,33 +223,11 @@ shared static this()
 }
 ```
 
-vibrant.d includes `Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Connect`, and `Trace` by default.
-
 Or use `Vibrant!true` to include all methods supported by vibe.d.
 
-### And Stop
+### Be Resourceful
 
-```d
-import vibrant.d;
-
-shared static this()
-{
-    with(Vibrant)
-    {
-        Post("/admin/shutdown", (req, res) {
-            bool authenticated;
-            // Authenticate . . .
-
-            if(authenticated)
-            {
-                Stop; // Stop the server.
-            }
-        });
-    }
-}
-```
-
-### Being Resourceful
+vibrant.d ships with a mixin `Routes` for adding Rails styled actions to controller classes.
 
 ```d
 import vibrant.d;
@@ -256,6 +236,7 @@ class BookController
 {
     mixin Routes;
 
+    // GET /book
     void index()
     {
         Book[] books = Book.all;
@@ -263,6 +244,7 @@ class BookController
         render!JSON = books.toJson;
     }
 
+    // GET /book/:id
     void show()
     {
         string id = params["id"];
@@ -271,15 +253,20 @@ class BookController
         render!JSON = book.toJson;
     }
 
+    // DELETE /book/:id
     void destroy()
     {
         string id = params["id"];
-        Book book = Book.find(id);
+        Book.destroy(id);
 
         render!EMPTY = 201;
     }
 }
 ```
+
+Routes also adds the fields `request` and `response` which store the associated request and response objects, and `params` which provides access to both URL and query parameters. 
+
+Installing a controller into vibrant is as simple as,
 
 ```d
 shared static this()
