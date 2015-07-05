@@ -223,6 +223,50 @@ shared static this()
 }
 ```
 
+### Being Resourceful
+
+```d
+import vibrant.d;
+
+class BookController
+{
+    mixin Routes;
+
+    void index()
+    {
+        Book[] books = Book.all;
+
+        render!JSON = books.toJson;
+    }
+
+    void show()
+    {
+        string id = params["id"];
+        Book book = Book.find(id);
+
+        render!JSON = book.toJson;
+    }
+
+    void destroy()
+    {
+        string id = params["id"];
+        Book book = Book.find(id);
+
+        render!EMPTY = 201;
+    }
+}
+```
+
+```d
+shared static this()
+{
+    with(Vibrant)
+    {
+        Resource!BookController;
+    }
+}
+```
+
 License
 -------
 
