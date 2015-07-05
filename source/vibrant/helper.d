@@ -88,3 +88,17 @@ if(isSomeString!Str)
 		.replaceAll(r2, "$1_$2")
 		.toLower;
 }
+
+string stripPrefix(string Prefix, Str)(Str str)
+if(isSomeString!Str)
+{
+	auto r1 = ctRegex!("^" ~ Prefix);
+	return str.replaceAll(r1, "");
+}
+
+string stripSuffix(string Suffix, Str)(Str str)
+if(isSomeString!Str)
+{
+	auto r1 = ctRegex!(Suffix ~ "$");
+	return str.replaceAll(r1, "");
+}

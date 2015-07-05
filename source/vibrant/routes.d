@@ -51,13 +51,12 @@ mixin template Routes()
 		}
 
 		@property
-		template resourceName(this This)
+		static string resourceName(this This)()
 		{
 			static if(query!This.hasAnyOf!Resource)
 			{
 				// Prefix from attribute.
-				enum resourceName = "/" ~ 
-					query!This
+				return "/" ~ query!This
 						.attributes!Resource
 						.unique
 						.first
@@ -66,8 +65,13 @@ mixin template Routes()
 			}
 			else
 			{
+				import std.string;
+
 				// Prefix from type name.
-				enum resourceName = "/" ~ This.stringof.toSnakeCase;
+				return "/" ~ This
+						.stringof
+						.toSnakeCase
+						.stripSuffix!"_controller";
 			}
 		}
 
@@ -136,15 +140,35 @@ mixin template Routes()
 		response.writeBody(to!string(content), contentType);
 	}
 
+	/++
+	 + Renders a response with a given content type and status code.
+	 ++/
+	@property
+	public void render(string contentType, Body)(Body content, int code)
+	{
+		response.statusCode = code;
+		render!(contentType, Body)(content);
+	}
 
 	/++
-	 + Renders a response with a given content type.
+	 + Renders an empty response.
 	 ++/
 	@property
 	public void render(string contentType)()
 	if(contentType == EMPTY)
 	{
 		response.writeBody(""); // Write an empty body.
+	}
+
+	/++
+	 + Renders an empty response and the given status code.
+	 ++/
+	@property
+	public void render(string contentType)(int code)
+	if(contentType == EMPTY)
+	{
+		response.statusCode = code;
+		render!contentType;
 	}
 
 	/++
