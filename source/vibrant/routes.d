@@ -155,7 +155,7 @@ mixin template Routes(string ResourceName = "")
 	}
 
 	/++
-	 + Installs the controllers routes into a Vibrant router.
+	 + Installs the controller routes into a Vibrant router.
 	 ++/
 	public static void install(bool Bool)(VibrantRouter!Bool router)
 	{
