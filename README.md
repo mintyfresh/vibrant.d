@@ -1,10 +1,34 @@
-vibrant.d - A Sinatra-like framework for vibe.d
-===============================================
+vibrant.d - A light framework on top of vibe.d
+==============================================
 
 vibrant.d is a light routing framework that mimicks the style of frameworks like Sinatra and Spark.
 
 Hello World
 -----------
+
+A plain 'Hello World!' application in vibe.d alone might look something like this,
+
+```d
+import vibe.d;
+
+shared static this()
+{
+    auto settings = new HTTPServerSettings;
+    settings.port = 8080;
+
+    listenHTTP(settings, &handleRequest);
+}
+
+void handleRequest(HTTPServerRequest req, HTTPServerResponse res)
+{
+    if(req.path == "/")
+    {
+        res.writeBody("Hello World!", "text/plain");
+    }
+}
+```
+
+With vibrant.d, we can trim things down a bit. Vibrant provides URL routing out of the box, and some reasonable defaults to get things moving.
 
 ```d
 import vibrant.d;
