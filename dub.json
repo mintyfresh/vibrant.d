@@ -1,6 +1,6 @@
 {
     "name": "vibrant-d",
-    "description": "A tiny Sinatra-like web framework that works on top of vibe.d.",
+    "description": "A light web framework that works on top of vibe.d.",
     "copyright": "Copyright © 2015, Mihail K.",
     "license": "MIT",
     "authors": [ "Mihail K" ],
