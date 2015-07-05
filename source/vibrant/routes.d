@@ -1,0 +1,208 @@
+
+module vibrant.routes;
+
+struct Resource
+{
+	string name;
+
+	this(string name)
+	{
+		this.name = name;
+	}
+}
+
+mixin template Routes()
+{
+
+	import std.typetuple;
+	import dquery.d;
+
+	private
+	{
+
+		/++
+		 + The current request parameters.
+		 ++/
+		ParameterWrapper params;
+
+		/++
+		 + The current HTTP Request object.
+		 ++/
+		HTTPServerRequest request;
+
+		/++
+		 + The current HTTP Response object.
+		 ++/
+		HTTPServerResponse response;
+
+		/++
+		 + Content type definitions for render!().
+		 ++/
+		enum
+		{
+			TEXT  = "text/plain",
+			JS    = "application/javascript",
+			JSON  = "application/json",
+			XML   = "application/xml",
+			XHTML = "application/xhtml+xml",
+			HTML  = "text/html",
+			CSS   = "text/css",
+			EMPTY = "@empty"
+		}
+
+		@property
+		template resourceName(this This)
+		{
+			static if(query!This.hasAnyOf!Resource)
+			{
+				// Prefix from attribute.
+				enum resourceName = "/" ~ 
+					query!This
+						.attributes!Resource
+						.unique
+						.first
+						.value
+						.name;
+			}
+			else
+			{
+				// Prefix from type name.
+				enum resourceName = "/" ~ This.stringof.toSnakeCase;
+			}
+		}
+
+		@property
+		template hasFunction(This, string name)
+		{
+			enum hasFunction = Alias!(
+				!query!This()
+					.functions
+					.arity!(0)
+					.name!name
+					.empty
+			);
+		}
+
+		@property
+		template getFunction(This, string name)
+		if(hasFunction!(This, name))
+		{
+			alias getFunction = Alias!(
+				query!This()
+					.functions
+					.arity!(0)
+					.name!name
+					.first
+					.value
+			);
+		}
+
+		static VoidCallback createCallback(This, string name)()
+		{
+			return delegate void(HTTPServerRequest req, HTTPServerResponse res)
+			{
+				// Create the controller.
+				This controller = new This;
+
+				// Setup request and response.
+				controller.params = req;
+				controller.request = req;
+				controller.response = res;
+
+				// Call the controller action.
+				controller.getFunction!(This, name)();
+			};
+		}
+
+	}
+
+	/++
+	 + Renders a plaintext response.
+	 ++/
+	@property
+	public void render(Body)(Body content)
+	{
+		return render!(Text, Body)(content);
+	}
+
+	/++
+	 + Renders a response with a given content type.
+	 ++/
+	@property
+	public void render(string contentType, Body)(Body content)
+	if(contentType.length > 0 && contentType[0] != '@')
+	{
+		import std.conv : to;
+		response.writeBody(to!string(content), contentType);
+	}
+
+
+	/++
+	 + Renders a response with a given content type.
+	 ++/
+	@property
+	public void render(string contentType)()
+	if(contentType == EMPTY)
+	{
+		response.writeBody(""); // Write an empty body.
+	}
+
+	/++
+	 + Installs the controllers routes into a Vibrant router.
+	 ++/
+	public static void install(bool Bool)(VibrantRouter!Bool router)
+	{
+		alias This = Alias!(typeof(this));
+
+		// 'index' route; display all.
+		static if(hasFunction!(This, "index"))
+		{
+			router.Get(resourceName!This, createCallback!(This, "index"));
+		}
+
+		// 'me' route; display my object.
+		static if(hasFunction!(This, "me"))
+		{
+			router.Get(resourceName!This, createCallback!(This, "me"));
+		}
+
+		// 'new' route; show new form.
+		static if(hasFunction!(This, "new"))
+		{
+			router.Get(resourceName!This ~ "/me", createCallback!(This, "new"));
+		}
+
+		// 'create' route; create object.
+		static if(hasFunction!(This, "create"))
+		{
+			router.Post(resourceName!This, createCallback!(This, "create"));
+		}
+
+		// 'show' route; display an object.
+		static if(hasFunction!(This, "show"))
+		{
+			Get(resourceName!This ~ "/:id", createCallback!(This, "show"));
+		}
+
+		// 'edit' route; display edit form.
+		static if(hasFunction!(This, "edit"))
+		{
+			Get(resourceName!This ~ "/:id/edit", createCallback!(This, "edit"));
+		}
+
+		// 'update' route; edit an object.
+		static if(hasFunction!(This, "update"))
+		{
+			Put(resourceName!This ~ "/:id", createCallback!(This, "update"));
+
+			Patch(resourceName!This ~ "/:id", createCallback!(This, "update"));
+		}
+
+		// 'destroy' route; delete an object.
+		static if(hasFunction!(This, "destroy"))
+		{
+			Delete(resourceName!This ~ "/:id", createCallback!(This, "destroy"));
+		}
+	}
+
+}
