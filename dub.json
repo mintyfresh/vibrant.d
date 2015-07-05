@@ -6,7 +6,7 @@
     "authors": [ "Mihail K" ],
     "dependencies": {
         "vibe-d": "~>0.7.24-beta.1",
-        "dquery": "~>0.1.0"
+        "dquery": "~>0.1.3"
     },
     "configurations": [
         {
