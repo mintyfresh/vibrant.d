@@ -14,7 +14,7 @@ import vibe.d;
 shared static this()
 {
     auto settings = new HTTPServerSettings;
-    settings.port = 8080;
+    settings.port = 8085;
 
     listenHTTP(settings, &handleRequest);
 }
