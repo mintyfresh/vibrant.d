@@ -7,62 +7,6 @@ import std.traits;
 
 import vibe.d;
 
-struct ParameterWrapper
-{
-
-	private HTTPServerRequest request;
-
-	void opAssign(HTTPServerRequest request)
-	{
-		this.request = request;
-	}
-
-	/++
-	 + Returns the wrapped url parameters.
-	 ++/
-	@property
-	auto urlParams()
-	{
-		return request.params;
-	}
-
-	/++
-	 + Returns the wrapped query parameters.
-	 ++/
-	@property
-	auto queryParams()
-	{
-		return request.query;
-	}
-
-	string get(string index, string fallback)
-	{
-		// Check URL parameters first.
-		auto ptr = index in request.params;
-		if(ptr !is null) return *ptr;
-
-		// Then check query parameters.
-		return request.query.get(index, fallback);
-	}
-
-	string opIndex(string index)
-	{
-		// Check URL parameters first.
-		auto ptr = index in request.params;
-		if(ptr !is null) return *ptr;
-
-		// Then check query parameters.
-		return request.query[index];
-	}
-
-	bool opBinaryRight(string op : "in")(string index)
-	{
-		// Check if the index exists in URL or query parameters.
-		return index in request.params || index in request.query;
-	}
-
-}
-
 /++
  + Response callback with no return value.
  ++/

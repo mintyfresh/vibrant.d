@@ -13,7 +13,7 @@ mixin template Routes(string ResourceName = "")
 		/++
 		 + The current request parameters.
 		 ++/
-		ParameterWrapper params;
+		Parameters params;
 
 		/++
 		 + The current HTTP Request object.
@@ -91,9 +91,9 @@ mixin template Routes(string ResourceName = "")
 				This controller = new This;
 
 				// Setup request and response.
-				controller.params = req;
 				controller.request = req;
 				controller.response = res;
+				controller.params = createParameters(req);
 
 				// Call the controller action.
 				controller.getFunction!(This, name)();
@@ -188,27 +188,27 @@ mixin template Routes(string ResourceName = "")
 		// 'show' route; display an object.
 		static if(hasFunction!(This, "show"))
 		{
-			Get(resourceName!This ~ "/:id", createCallback!(This, "show"));
+			router.Get(resourceName!This ~ "/:id", createCallback!(This, "show"));
 		}
 
 		// 'edit' route; display edit form.
 		static if(hasFunction!(This, "edit"))
 		{
-			Get(resourceName!This ~ "/:id/edit", createCallback!(This, "edit"));
+			router.Get(resourceName!This ~ "/:id/edit", createCallback!(This, "edit"));
 		}
 
 		// 'update' route; edit an object.
 		static if(hasFunction!(This, "update"))
 		{
-			Put(resourceName!This ~ "/:id", createCallback!(This, "update"));
+			router.Put(resourceName!This ~ "/:id", createCallback!(This, "update"));
 
-			Patch(resourceName!This ~ "/:id", createCallback!(This, "update"));
+			router.Patch(resourceName!This ~ "/:id", createCallback!(This, "update"));
 		}
 
 		// 'destroy' route; delete an object.
 		static if(hasFunction!(This, "destroy"))
 		{
-			Delete(resourceName!This ~ "/:id", createCallback!(This, "destroy"));
+			router.Delete(resourceName!This ~ "/:id", createCallback!(This, "destroy"));
 		}
 	}
 
