@@ -13,7 +13,7 @@ mixin template Routes(string ResourceName = "")
 		/++
 		 + The current request parameters.
 		 ++/
-		Parameters params;
+		Parameter params;
 
 		/++
 		 + The current HTTP Request object.
