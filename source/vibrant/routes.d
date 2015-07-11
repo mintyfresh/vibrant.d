@@ -93,7 +93,7 @@ mixin template Routes(string ResourceName = "")
 				// Setup request and response.
 				controller.request = req;
 				controller.response = res;
-				controller.params = createParameters(req);
+				controller.params = req.createParameters;
 
 				// Call the controller action.
 				controller.getFunction!(This, name)();

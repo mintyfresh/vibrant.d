@@ -4,7 +4,7 @@ module vibrant.d;
 public import vibe.d;
 
 public import vibrant.helper;
-public import vibrant.parameters;
+public import vibrant.parameter;
 public import vibrant.router;
 public import vibrant.routes;
 
